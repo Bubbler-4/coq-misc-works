@@ -4,6 +4,3 @@ USER root
 RUN add-apt-repository ppa:kelleyk/emacs && \
     apt-get -yq update && \
     apt-get -yq install emacs26-nox
-
-USER gitpod
-RUN emacs --script install.el
