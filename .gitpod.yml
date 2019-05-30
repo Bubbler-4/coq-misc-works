@@ -2,4 +2,4 @@ image:
     file: docker/gitpod.Dockerfile
     context: docker
 tasks:
-    command: emacs --script /home/gitpod/install.el
+  - command: emacs --script /home/gitpod/install.el
