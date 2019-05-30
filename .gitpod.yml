@@ -1,5 +1,3 @@
 image:
     file: docker/gitpod.Dockerfile
     context: docker
-tasks:
-  - command: cp .emacs /home/gitpod/.emacs && emacs --script install.el
