@@ -3,11 +3,11 @@
 (require 'package)
 
 ; find package information from following archives
-(setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
-                         ("marmalade" . "http://marmalade-repo.org/packages/")
+(setq package-archives '(
                          ("melpa" . "http://melpa.milkbox.net/packages/")))
 
 (package-initialize)
+(package-refresh-contents)
 
 (mapcar (lambda (package)
           ; install package if not already installed
