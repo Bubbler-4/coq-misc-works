@@ -15,6 +15,13 @@ My own solutions and extra works.
 
 * `fact_div.v`: A pure algebraic proof that `(a+b)!` is divisible by `a! * b!`. ([SO answer](https://stackoverflow.com/questions/55333331/coq-proof-that-factorial-n-factorial-k-factorial-n-k-is-integer/55944121#55944121))
 
+### Planned Contents
+
+* The entire book of PLF, probably with my own set of automated tactics.
+* Solutions to [MIT FRAP '18 exercises](https://github.com/mit-frap/spring18). Probably will do '17 and '16 too.
+  I'm not sure whether it will work with default stdlib without the FRAP library, but I'll try. Quick skim indicates that most of the exercises are independent of FRAP.
+* More StackOverflow answers.
+
 ## Instructions (if you really want to run them)
 
 Currently, the only dependencies are within LF.
