@@ -209,8 +209,7 @@ Proof. reflexivity. Qed.
 
 Lemma t_apply_empty : forall (A : Type) (x : string) (v : A),
     (_ !-> v) x = v.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof. auto. Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_eq)
@@ -221,8 +220,8 @@ Proof.
 
 Lemma t_update_eq : forall (A : Type) (m : total_map A) x v,
     (x !-> v ; m) x = v.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof. intros A m x v. unfold t_update.
+    rewrite <- eqb_string_refl. auto. Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_neq)
@@ -235,7 +234,8 @@ Theorem t_update_neq : forall (A : Type) (m : total_map A) x1 x2 v,
     x1 <> x2 ->
     (x1 !-> v ; m) x2 = m x2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+    intros A m x1 x2 v H. unfold t_update.
+    apply false_eqb_string in H. rewrite H. auto. Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_shadow)
@@ -246,10 +246,12 @@ Proof.
     to any key) as the simpler map obtained by performing just
     the second [update] on [m]: *)
 
+Import FunctionalExtensionality.
 Lemma t_update_shadow : forall (A : Type) (m : total_map A) x v1 v2,
     (x !-> v2 ; x !-> v1 ; m) = (x !-> v2 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+    intros. unfold t_update. apply functional_extensionality.
+    intros x0. destruct (eqb_string x x0); auto. Qed.
 (** [] *)
 
 (** For the final two lemmas about total maps, it's convenient to use
@@ -265,7 +267,8 @@ Proof.
 Lemma eqb_stringP : forall x y : string,
     reflect (x = y) (eqb_string x y).
 Proof.
-  (* FILL IN HERE *) Admitted.
+    intros x y. destruct (eqb_string x y) eqn:E; constructor;
+    apply eqb_string_true_iff || apply eqb_string_false_iff; auto. Qed.
 (** [] *)
 
 (** Now, given [string]s [x1] and [x2], we can use the tactic
@@ -284,7 +287,9 @@ Proof.
 Theorem t_update_same : forall (A : Type) (m : total_map A) x,
     (x !-> m x ; m) = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+    intros A m x. apply functional_extensionality. intros x0. unfold t_update.
+    destruct (eqb_string x x0) eqn:E; try apply eqb_string_true_iff in E;
+    congruence. Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, recommended (t_update_permute)
@@ -300,7 +305,11 @@ Theorem t_update_permute : forall (A : Type) (m : total_map A)
     =
     (x2 !-> v2 ; x1 !-> v1 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+    intros A m v1 v2 x1 x2 H. apply functional_extensionality. intros x.
+    unfold t_update.
+    destruct (eqb_string x1 x) eqn:E1; destruct (eqb_string x2 x) eqn:E2; auto.
+    apply eqb_string_true_iff in E1. apply eqb_string_true_iff in E2.
+    rewrite E1, E2 in H. contradiction. Qed.
 (** [] *)
 
 (* ################################################################# *)
