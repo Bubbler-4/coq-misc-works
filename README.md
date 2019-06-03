@@ -9,7 +9,7 @@ A random collection of my own Coq works
 My own solutions and extra works.
 
 * `Maps.v`: 100% exercises completed, no extra content
-* `Imp.v`: Not yet touched, will include extra theorems and automation tactics
+* `Imp.v`: 20% completed, will include extra theorems and automation tactics
 
 ### StackOverflow
 
@@ -27,9 +27,9 @@ My own solutions and extra works.
 Currently, the only dependencies are within LF.
 Run `make <filename>.vo` inside that folder to compile the target file and all of its dependencies.
 
-Running on Gitpod is also supported, but not recommended for now because you can't interactively browse the proof scripts.
-(I tried terminal Emacs + ProofGeneral on Gitpod, but it's close to unusable.)
-We should wait until at least three things come to life (AFAIK all of these are planned, but progress is unknown):
+Running on Gitpod is also supported, and you can actually run CoqIDE online through the VNC server.
+For native Gitpod support (no VNC), we should wait until at least three things come to life
+(AFAIK all of these are planned, but progress is unknown):
 
 * Coq speaks LSP,
 * a working VS Code plugin is available using the LSP,

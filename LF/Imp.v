@@ -435,14 +435,25 @@ Qed.
     function that performs this transformation on [bexp]s and prove
     it is sound.  Use the tacticals we've just seen to make the proof
     as elegant as possible. *)
-
-Fixpoint optimize_0plus_b (b : bexp) : bexp
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Print bexp.
+Fixpoint optimize_0plus_b (b : bexp) : bexp :=
+  match b with
+  | BEq a1 a2 => BEq (optimize_0plus a1) (optimize_0plus a2)
+  | BLe a1 a2 => BLe (optimize_0plus a1) (optimize_0plus a2)
+  | BNot b1 => BNot (optimize_0plus_b b1)
+  | BAnd b1 b2 => BAnd (optimize_0plus_b b1) (optimize_0plus_b b2)
+  | _ => b
+  end.
 
 Theorem optimize_0plus_b_sound : forall b,
   beval (optimize_0plus_b b) = beval b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction b;
+  (* BTrue, BFalse: trivial *) auto;
+  (* BEq, BLE: follows from optimize_0plus_sound *)
+  simpl; try (repeat rewrite optimize_0plus_sound; auto);
+  (* BNot, BAnd: follows from IHb's. *)
+  congruence. Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard, optional (optimize)
