@@ -1,1 +1,1 @@
-FROM bubbler9903/coq-gitpod:latest
+FROM bubbler9903/coq-gitpod:vnc-latest
