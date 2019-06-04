@@ -559,6 +559,31 @@ Proof. induction b; auto; simpl;
   repeat rewrite constant_fold_full; auto;
   [rewrite IHb; destruct (beval b) | rewrite IHb1, IHb2; destruct (beval b1)]; auto. Qed.
 
+Fixpoint depth (a : aexp) : nat :=
+  match a with
+  | ANum n => 0
+  | APlus a1 a2 => S (max (depth a1) (depth a2))
+  | AMinus a1 a2 => S (max (depth a1) (depth a2))
+  | AMult a1 a2 => S (max (depth a1) (depth a2))
+  end.
+
+Theorem constant_fold1_depth : forall a, depth (constant_fold1 a) = pred (depth a).
+Proof. induction a; auto;
+  simpl; destruct a1;
+  try (cbn [depth]; rewrite IHa1, IHa2; simpl; destruct (depth a2); auto; simpl;
+  rewrite Nat.max_0_r; auto);
+  destruct a2; auto; cbn [depth]; rewrite IHa1, IHa2; auto. Qed.
+
+Fixpoint repeat {A : Type} (n : nat) (f : A -> A) (x : A) : A :=
+  match n with
+  | O => x | S n' => repeat n' f (f x)
+  end.
+
+Theorem constant_fold1_to_full : forall a, exists n, repeat n constant_fold1 a = ANum (aeval a).
+Proof. induction a.
+  - simpl. exists 0. auto.
+  - destruct IHa1, IHa2. exists (S (x + x0)). cbn [repeat constant_fold1].
+
 (* ================================================================= *)
 (** ** Defining New Tactic Notations *)
 
