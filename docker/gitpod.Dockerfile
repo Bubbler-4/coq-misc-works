@@ -4,5 +4,5 @@ USER root
 
 # Replace VNC startup script
 RUN rm -f /usr/bin/start-vnc-session.sh
-COPY start-vnc-session.sh /usr/bin/
+COPY docker/start-vnc-session.sh /usr/bin/
 RUN chmod +x /usr/bin/start-vnc-session.sh
