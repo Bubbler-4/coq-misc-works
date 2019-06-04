@@ -10,6 +10,7 @@ My own solutions and extra works.
 
 * `Maps.v`: 100% exercises completed, no extra content
 * `Imp.v`: 20% completed, will include extra theorems and automation tactics
+  * Optional exercise `optimize`: Two implementations of constant folding (fold once / fold fully), and proofs that both are sound, and full folding yields a constant (because there's no variables here).
 
 ### StackOverflow
 

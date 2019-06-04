@@ -435,7 +435,7 @@ Qed.
     function that performs this transformation on [bexp]s and prove
     it is sound.  Use the tacticals we've just seen to make the proof
     as elegant as possible. *)
-Print bexp.
+
 Fixpoint optimize_0plus_b (b : bexp) : bexp :=
   match b with
   | BEq a1 a2 => BEq (optimize_0plus a1) (optimize_0plus a2)
@@ -466,9 +466,98 @@ Proof.
     optimization and its correctness proof -- and build up to
     something more interesting incrementially.)  *)
 
-(* FILL IN HERE
+Fixpoint constant_fold1 (a : aexp) : aexp :=
+  match a with
+  | APlus (ANum n1) (ANum n2) => ANum (n1 + n2)
+  | APlus a1 a2 => APlus (constant_fold1 a1) (constant_fold1 a2)
+  | AMinus (ANum n1) (ANum n2) => ANum (n1 - n2)
+  | AMinus a1 a2 => AMinus (constant_fold1 a1) (constant_fold1 a2)
+  | AMult (ANum n1) (ANum n2) => ANum (n1 * n2)
+  | AMult a1 a2 => AMult (constant_fold1 a1) (constant_fold1 a2)
+  | _ => a
+  end.
 
-    [] *)
+Theorem constant_fold1_sound : forall a, aeval (constant_fold1 a) = aeval a.
+Proof.
+  induction a; auto; simpl; destruct a1, a2; simpl in IHa1, IHa2 |- *; auto.
+Qed.
+
+Definition bool2bexp (b : bool) : bexp :=
+  match b with
+  | true => BTrue | false => BFalse
+  end.
+Coercion bool2bexp : bool >-> bexp.
+
+Fixpoint constant_fold1b (b : bexp) : bexp :=
+  match b with
+  | BEq (ANum n1) (ANum n2) => n1 =? n2
+  | BEq a1 a2 => BEq (constant_fold1 a1) (constant_fold1 a2)
+  | BLe (ANum n1) (ANum n2) => n1 <=? n2
+  | BLe a1 a2 => BLe (constant_fold1 a1) (constant_fold1 a2)
+  | BNot BTrue => BFalse | BNot BFalse => BTrue
+  | BNot b1 => BNot (constant_fold1b b1)
+  | BAnd BTrue b2 => constant_fold1b b2
+  | BAnd BFalse b2 => BFalse
+  | BAnd b1 b2 => BAnd (constant_fold1b b1) (constant_fold1b b2)
+  | _ => b
+  end.
+
+Theorem constant_fold1b_sound : forall b, beval (constant_fold1b b) = beval b.
+Proof.
+  induction b; auto; simpl.
+  - destruct a1, a2; cbn [beval]; repeat rewrite constant_fold1_sound; auto.
+    simpl. destruct (n =? n0); auto.
+  - destruct a1, a2; cbn [beval]; repeat rewrite constant_fold1_sound; auto.
+    simpl. destruct (n <=? n0); auto.
+  - destruct b; cbn [beval]; try rewrite IHb; auto.
+  - destruct b1; cbn [beval]; try rewrite IHb1; try rewrite IHb2; auto. Qed.
+
+Fixpoint constant_fold (a : aexp) : aexp :=
+  match a with
+  | APlus a1 a2 => match constant_fold a1, constant_fold a2 with
+    | ANum n1, ANum n2 => ANum (n1 + n2) | a1', a2' => APlus a1' a2' end
+  | AMinus a1 a2 => match constant_fold a1, constant_fold a2 with
+    | ANum n1, ANum n2 => ANum (n1 - n2) | a1', a2' => AMinus a1' a2' end
+  | AMult a1 a2 => match constant_fold a1, constant_fold a2 with
+    | ANum n1, ANum n2 => ANum (n1 * n2) | a1', a2' => AMult a1' a2' end
+  | _ => a end.
+
+Theorem constant_fold_sound : forall a, aeval (constant_fold a) = aeval a.
+Proof. induction a; auto; simpl;
+  destruct (constant_fold a1); rewrite <- IHa1, <- IHa2; auto;
+  destruct (constant_fold a2); auto. Qed.
+
+Fixpoint constant_foldb (b : bexp) : bexp :=
+  match b with
+  | BEq a1 a2 => match constant_fold a1, constant_fold a2 with
+    | ANum n1, ANum n2 => n1 =? n2 | a1', a2' => BEq a1' a2' end
+  | BLe a1 a2 => match constant_fold a1, constant_fold a2 with
+    | ANum n1, ANum n2 => n1 <=? n2 | a1', a2' => BLe a1' a2' end
+  | BNot b1 => match constant_foldb b1 with
+    | BTrue => BFalse | BFalse => BTrue | b1' => BNot b1' end
+  | BAnd b1 b2 => match constant_foldb b1 with
+    | BTrue => constant_foldb b2 | BFalse => BFalse | b1' => BAnd b1' (constant_foldb b2) end
+  | _ => b
+  end.
+
+Theorem constant_foldb_sound : forall b, beval (constant_foldb b) = beval b.
+Proof. induction b; auto; cbn [constant_foldb beval].
+  - rewrite <- (constant_fold_sound a1), <- (constant_fold_sound a2);
+    destruct (constant_fold a1), (constant_fold a2); auto.
+    simpl. destruct (n =? n0); auto.
+  - rewrite <- (constant_fold_sound a1), <- (constant_fold_sound a2);
+    destruct (constant_fold a1), (constant_fold a2); auto.
+    simpl. destruct (n <=? n0); auto.
+  - destruct (constant_foldb b); rewrite <- IHb; auto.
+  - destruct (constant_foldb b1); rewrite <- IHb1, <- IHb2; auto. Qed.
+
+Theorem constant_fold_full : forall a, constant_fold a = ANum (aeval a).
+Proof. induction a; auto; simpl; rewrite IHa1, IHa2; auto. Qed.
+
+Theorem constant_foldb_full : forall b, constant_foldb b = beval b.
+Proof. induction b; auto; simpl;
+  repeat rewrite constant_fold_full; auto;
+  [rewrite IHb; destruct (beval b) | rewrite IHb1, IHb2; destruct (beval b1)]; auto. Qed.
 
 (* ================================================================= *)
 (** ** Defining New Tactic Notations *)
