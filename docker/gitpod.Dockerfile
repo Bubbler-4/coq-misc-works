@@ -3,6 +3,4 @@ FROM bubbler9903/coq-gitpod:vnc-latest
 USER root
 
 # Replace VNC startup script
-RUN rm -f /usr/bin/start-vnc-session.sh
-COPY docker/start-vnc-session.sh /usr/bin/
-RUN chmod +x /usr/bin/start-vnc-session.sh
+RUN sed -i 's/1920x1080/1600x800/g' /usr/bin/start-vnc-session.sh
