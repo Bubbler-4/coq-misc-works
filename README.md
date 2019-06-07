@@ -13,6 +13,7 @@ My own solutions and extra works.
   * Optional exercise `optimize`
     * Two implementations of constant folding (fold once / fold fully)
     * Proofs that both are sound, and full folding yields a constant (because there's no variables here)
+    * A definition of depth, and proofs that folding once reduces depth by one, and folding `depth` times yields a constant
 
 ### StackOverflow
 

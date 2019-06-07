@@ -496,8 +496,10 @@ Fixpoint constant_fold1b (b : bexp) : bexp :=
   | BLe a1 a2 => BLe (constant_fold1 a1) (constant_fold1 a2)
   | BNot BTrue => BFalse | BNot BFalse => BTrue
   | BNot b1 => BNot (constant_fold1b b1)
-  | BAnd BTrue b2 => constant_fold1b b2
-  | BAnd BFalse b2 => BFalse
+  | BAnd BTrue BTrue => BTrue
+  | BAnd BTrue BFalse => BFalse
+  | BAnd BFalse BTrue => BFalse
+  | BAnd BFalse BFalse => BFalse
   | BAnd b1 b2 => BAnd (constant_fold1b b1) (constant_fold1b b2)
   | _ => b
   end.
@@ -510,7 +512,7 @@ Proof.
   - destruct a1, a2; cbn [beval]; repeat rewrite constant_fold1_sound; auto.
     simpl. destruct (n <=? n0); auto.
   - destruct b; cbn [beval]; try rewrite IHb; auto.
-  - destruct b1; cbn [beval]; try rewrite IHb1; try rewrite IHb2; auto. Qed.
+  - destruct b1, b2; cbn [beval]; try rewrite IHb1; try rewrite IHb2; auto. Qed.
 
 Fixpoint constant_fold (a : aexp) : aexp :=
   match a with
@@ -535,8 +537,10 @@ Fixpoint constant_foldb (b : bexp) : bexp :=
     | ANum n1, ANum n2 => n1 <=? n2 | a1', a2' => BLe a1' a2' end
   | BNot b1 => match constant_foldb b1 with
     | BTrue => BFalse | BFalse => BTrue | b1' => BNot b1' end
-  | BAnd b1 b2 => match constant_foldb b1 with
-    | BTrue => constant_foldb b2 | BFalse => BFalse | b1' => BAnd b1' (constant_foldb b2) end
+  | BAnd b1 b2 => match constant_foldb b1, constant_foldb b2 with
+    | BTrue, BTrue => BTrue | BTrue, BFalse => BFalse
+    | BFalse, BTrue => BFalse | BFalse, BFalse => BFalse
+    | b1', b2' => BAnd b1' b2' end
   | _ => b
   end.
 
@@ -549,7 +553,8 @@ Proof. induction b; auto; cbn [constant_foldb beval].
     destruct (constant_fold a1), (constant_fold a2); auto.
     simpl. destruct (n <=? n0); auto.
   - destruct (constant_foldb b); rewrite <- IHb; auto.
-  - destruct (constant_foldb b1); rewrite <- IHb1, <- IHb2; auto. Qed.
+  - destruct (constant_foldb b1), (constant_foldb b2);
+    rewrite <- IHb1, <- IHb2; auto. Qed.
 
 Theorem constant_fold_full : forall a, constant_fold a = ANum (aeval a).
 Proof. induction a; auto; simpl; rewrite IHa1, IHa2; auto. Qed.
@@ -557,7 +562,8 @@ Proof. induction a; auto; simpl; rewrite IHa1, IHa2; auto. Qed.
 Theorem constant_foldb_full : forall b, constant_foldb b = beval b.
 Proof. induction b; auto; simpl;
   repeat rewrite constant_fold_full; auto;
-  [rewrite IHb; destruct (beval b) | rewrite IHb1, IHb2; destruct (beval b1)]; auto. Qed.
+  [rewrite IHb; destruct (beval b) |
+   rewrite IHb1, IHb2; destruct (beval b1), (beval b2)]; auto. Qed.
 
 Fixpoint depth (a : aexp) : nat :=
   match a with
@@ -579,10 +585,68 @@ Fixpoint repeat {A : Type} (n : nat) (f : A -> A) (x : A) : A :=
   | O => x | S n' => repeat n' f (f x)
   end.
 
-Theorem constant_fold1_to_full : forall a, exists n, repeat n constant_fold1 a = ANum (aeval a).
-Proof. induction a.
-  - simpl. exists 0. auto.
-  - destruct IHa1, IHa2. exists (S (x + x0)). cbn [repeat constant_fold1].
+Lemma depth_0 : forall a, depth a = 0 -> exists n, a = ANum n.
+Proof. intros a H. destruct a; try discriminate. exists n. auto. Qed.
+
+Lemma constant_fold1_repeat : forall a, depth (repeat (depth a) constant_fold1 a) = 0.
+Proof. intros a. remember (depth a) as d. revert dependent a. induction d; intros; auto.
+  simpl. apply IHd. rewrite constant_fold1_depth. rewrite <- Heqd. auto. Qed.
+
+Lemma constant_fold1_repeat_sound : forall n a,
+  aeval (repeat n constant_fold1 a) = aeval a.
+Proof. induction n; auto; intros. simpl. rewrite IHn. apply constant_fold1_sound. Qed.
+
+Theorem constant_fold1_to_full : forall a,
+  repeat (depth a) constant_fold1 a = ANum (aeval a).
+Proof. intros a.
+  pose proof (constant_fold1_repeat a). apply depth_0 in H. destruct H.
+  pose proof (constant_fold1_repeat_sound (depth a) a).
+  rewrite H in H0. simpl in H0. rewrite H0 in H. auto. Qed.
+
+Fixpoint bdepth (b : bexp) : nat :=
+  match b with
+  | BEq a1 a2 => S (max (depth a1) (depth a2))
+  | BLe a1 a2 => S (max (depth a1) (depth a2))
+  | BNot b1 => S (bdepth b1)
+  | BAnd b1 b2 => S (max (bdepth b1) (bdepth b2))
+  | _ => 0
+  end.
+
+Lemma beq_bdepth : forall a1 a2,
+  bdepth (constant_fold1b (BEq a1 a2)) = depth (constant_fold1 (APlus a1 a2)).
+Proof. simpl. induction a1; induction a2; auto. destruct (n =? n0); auto. Qed.
+
+Lemma ble_bdepth : forall a1 a2,
+  bdepth (constant_fold1b (BLe a1 a2)) = depth (constant_fold1 (APlus a1 a2)).
+Proof. simpl. induction a1; induction a2; auto. destruct (n <=? n0); auto. Qed.
+
+Theorem constant_fold1b_depth : forall b, bdepth (constant_fold1b b) = pred (bdepth b).
+Proof. induction b; auto.
+  - rewrite beq_bdepth. rewrite constant_fold1_depth. auto.
+  - rewrite ble_bdepth. rewrite constant_fold1_depth. auto.
+  - simpl. destruct b; auto; cbn [bdepth]; rewrite IHb; auto.
+  - simpl. destruct b1, b2; auto; cbn [bdepth]; rewrite IHb1, IHb2; auto;
+    rewrite Nat.max_0_r; auto. Qed.
+
+Lemma bdepth_0 : forall b, bdepth b = 0 -> exists v : bool, b = v.
+Proof. intros [] H; try discriminate; [exists true | exists false]; auto. Qed.
+
+Lemma constant_fold1b_repeat : forall b,
+  bdepth (repeat (bdepth b) constant_fold1b b) = 0.
+Proof. intros b. remember (bdepth b) as d. revert dependent b.
+  induction d; intros; auto.
+  simpl. apply IHd. rewrite constant_fold1b_depth. rewrite <- Heqd. auto. Qed.
+
+Lemma constant_fold1b_repeat_sound : forall n b,
+  beval (repeat n constant_fold1b b) = beval b.
+Proof. induction n; auto; intros. simpl. rewrite IHn. apply constant_fold1b_sound. Qed.
+
+Theorem constant_fold1b_to_full : forall b,
+  repeat (bdepth b) constant_fold1b b = beval b.
+Proof. intros b.
+  pose proof (constant_fold1b_repeat b). apply bdepth_0 in H. destruct H.
+  pose proof (constant_fold1b_repeat_sound (bdepth b) b).
+  rewrite H in H0. rewrite H. rewrite <- H0. destruct x; auto. Qed.
 
 (* ================================================================= *)
 (** ** Defining New Tactic Notations *)
